@@ -13,8 +13,6 @@ https://hvac.readthedocs.io/en/stable/usage/secrets_engines/kv_v1.html
 * freezing secrets, so they are stored for all-time
 
 
-
-
 ## use cases 
 ### use case 1.
 get all the workspaces available for the user.
@@ -58,3 +56,12 @@ delete a secret
 1. handle input "workspace" and "secret_name"
 2. check if workspace is part of jwt groups
 3. remove secret under  "secret_name"
+
+
+
+# Start project
+```
+python3.7 -m venv venv
+venv/bin/pip install -r requirements.txt
+venv/bin/python app.py
+```
