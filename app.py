@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import requests
 
 app = Flask(__name__)
 
@@ -17,14 +18,8 @@ OPTIONS = {
 # vault operations
 import hvac
 
-VAULT_HOST = 'https://127.0.0.1:1234'
+VAULT_HOST = 'http://127.0.0.1:1234'
 VAULT_TOKEN = 'vault_root_token' 
-client = hvac.Client(
-    url= VAULT_HOST,
-    token=VAULT_TOKEN,
-    #cert=(client_cert_path, client_key_path),
-    #verify=server_cert_path,
-)
 
 import string
 
@@ -34,8 +29,8 @@ def remove_all_non_ascii_letters(s):
     return ''.join(ALLOWED_CHARS.get(i, '') for i in s)
 
 
-def create_path(namespace, workspace, name=''):
-    return '/'.join(namespace, workspace, name)
+def create_path(*args):
+    return '/'.join(args)
 
 
 def clean_input(f):
@@ -46,27 +41,38 @@ def clean_input(f):
     return inner
 
 
-@clean_input
-def vault_list(workspace, name):
-    path = create_path(PROJECT_NAME, cleaned_workspace)
-    return client.secrets.kv.v1.list_secrets(path=path)
+def vault_list(workspace):
+    path = create_path(PROJECT_NAME, workspace)
+    url = f"http://127.0.0.1:1234/v1/{path}"
+    print(url)
+    headers = {"X-Vault-Token": "vault_root_token"}
+    resp = requests.request('LIST', url=url, headers=headers).json()
+    print(resp)
+    return resp["data"]
 
 
 @clean_input
 def vault_read(workspace, name):
-    return 
+    path = create_path(PROJECT_NAME, workspace, name)
+    url = f"http://127.0.0.1:1234/v1/{path}"
+    print(url)
+    headers = {"X-Vault-Token": "vault_root_token"}
+    resp = requests.request('GET', url=url, headers=headers).json()
+    print(resp)
+    return resp["data"]["secret"]
 
 
 @clean_input
 def vault_create(workspace, name, secret):
     path = create_path(PROJECT_NAME, cleaned_workspace, cleaned_name)
-
-    client.secrets.kv.v1.create_or_update_secret(
-        path=path,
-        secret={"secret": secret},
-    )
-
-    return
+    path = create_path(PROJECT_NAME, cleaned_workspace, cleaned_name)
+    url = f"http://127.0.0.1:1234/v1/{path}"
+    print(url)
+    headers = {"X-Vault-Token": "vault_root_token"}
+    body = {"secret": secret}
+    resp = requests.request('post', url=url, headers=headers).json()
+    print(resp)
+    return "oke"
 
 
 @clean_input
@@ -90,7 +96,7 @@ def get_secret(request):
 
 
 def decode(jwt):
-    return {"usergroups": ["admin", "apple"]}
+    return {"groups": ["admin", "apple"]}
 
 
 def get_userdata(request):
@@ -99,7 +105,7 @@ def get_userdata(request):
 
 
 def get_workspaces(userdata):
-    groups = userdate["groups"]
+    groups = userdata["groups"]
     groups.append("personal")
     return groups
 
@@ -123,7 +129,7 @@ def list_workspaces():
 # rest handlers
 
 @app.route("/<workspace>/list/")
-def list(workspace, name):
+def list(workspace):
     userdata = get_userdata(request)
     workspaces = get_workspaces(userdata)
     if workspace not in workspaces:
